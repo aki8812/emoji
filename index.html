@@ -9,6 +9,11 @@
       --yellow-1:#fff7c2; 
       --yellow-2:#ffe98a; 
       --ring:#ffe066;
+      --red:#e53935;
+      --card:#ffffff;
+      --shadow:0 12px 28px rgba(0,0,0,.12);
+      /* 可自行調整：數字距離視窗頂端 */
+      --counter-top: clamp(16px, 8vh, 120px);
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0}
@@ -19,41 +24,122 @@
       touch-action:manipulation;
     }
 
+    /* ====== 垂直堆疊容器 ====== */
+    .stack{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap: clamp(16px, 3vh, 28px);
+    }
+
+    /* ====== 大型計數顯示（固定在上方） ====== */
+    .counter{
+      font-family: "Microsoft JhengHei","微軟正黑體",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      font-size: clamp(64px, 12vw, 180px);
+      font-weight: 800; line-height: 1; letter-spacing: .02em;
+      color:#000; user-select:none;
+      font-variant-numeric: tabular-nums;
+      filter: drop-shadow(0 3px 10px rgba(0,0,0,.10));
+      transition: color .35s ease, transform .2s ease;
+
+      position: fixed; /* 關鍵：不佔空間，避免影響按鈕置中 */
+      top: var(--counter-top);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      pointer-events: none;
+    }
+    .counter.bump{ transform: translateX(-50%) scale(1.03) }
+    @media (prefers-reduced-motion: reduce){ .counter{ transition: none } }
+
+    /* ====== 圓形按鈕（維持正中央） ====== */
     .round-btn{
       width:140px;height:140px;border-radius:50%;
       border:none;outline:none;cursor:pointer;user-select:none;
       background:radial-gradient(circle at 30% 30%, var(--yellow-1), var(--yellow-2));
-      box-shadow: 0 12px 28px rgba(0,0,0,.12), inset 0 2px 8px rgba(255,255,255,.6);
+      box-shadow: var(--shadow), inset 0 2px 8px rgba(255,255,255,.6);
       transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
       position:relative;
     }
     .round-btn:hover{ transform: translateY(-2px); filter:brightness(1.02)}
     .round-btn:active{ transform: translateY(0); box-shadow:0 10px 20px rgba(0,0,0,.1), inset 0 2px 6px rgba(0,0,0,.06)}
     .round-btn:focus-visible{ outline:4px solid var(--ring); outline-offset:4px}
-
     .round-btn::after{
       content:""; position:absolute; inset:0; border-radius:50%;
       background: radial-gradient( circle at 35% 35%, rgba(255,255,255,.7), transparent 40% );
       pointer-events:none;
     }
 
+    /* ====== emoji（保留既有動畫） ====== */
     .emoji{
       position: fixed; left:0; top:0; will-change: transform, opacity; pointer-events:none;
       filter: drop-shadow(0 3px 10px rgba(0,0,0,.15));
       transform: translate(-9999px, -9999px);
     }
 
-    @media (prefers-reduced-motion: reduce){
-      .round-btn{ transition: none }
+    @media (prefers-reduced-motion: reduce){ .round-btn{ transition: none } }
+
+    /* ====== 右上角「歸零」按鈕 ====== */
+    .reset-btn{
+      position: fixed; top:16px; right:16px; z-index: 30;
+      background: var(--red); color:#000; border:none; border-radius:999px;
+      padding:10px 16px; font-weight:700; cursor:pointer;
+      box-shadow: 0 8px 18px rgba(0,0,0,.12);
+      transition: transform .1s ease, filter .2s ease, box-shadow .2s ease;
     }
+    .reset-btn:hover{ transform: translateY(-1px); filter:brightness(1.03)}
+    .reset-btn:active{ transform: translateY(0)}
+    .reset-btn:focus-visible{ outline:4px solid var(--ring); outline-offset:3px }
+
+    /* ====== 確認卡片（自製 modal） ====== */
+    .modal{
+      position: fixed; inset:0; z-index:40;
+      display:grid; place-items:center;
+      background: rgba(0,0,0,.35);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+    }
+    .modal.hidden{ display:none }
+    .card{
+      width: min(92vw, 420px);
+      background: var(--card); border-radius:16px;
+      padding: 20px; box-shadow: 0 16px 42px rgba(0,0,0,.18);
+    }
+    .card h2{ margin:0 0 8px 0; font-size:20px }
+    .card p{ margin:0 0 16px 0; color:#444 }
+    .actions{ display:flex; justify-content:flex-end; gap:12px }
+    .btn{ border:none; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer }
+    .btn.ghost{ background:#f2f2f2; color:#222 }
+    .btn.danger{ background: var(--red); color:#000 }
+    .btn:focus-visible{ outline:3px solid var(--ring); outline-offset:2px }
   </style>
 </head>
 <body>
-  <button id="btn" class="round-btn" aria-label="button"></button>
+
+  <!-- 右上角「歸零」 -->
+  <button id="resetBtn" class="reset-btn" aria-label="歸零">歸零</button>
+
+  <!-- 中央堆疊容器：上方數字（fixed，不佔空間） + 正中央按鈕 -->
+  <div class="stack">
+    <div id="counter" class="counter" aria-live="polite">0</div>
+    <button id="btn" class="round-btn" aria-label="button"></button>
+  </div>
+
+  <!-- 確認卡片（自製，不是 alert） -->
+  <div id="confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="card">
+      <h2 id="confirm-title">確定要把計數歸零嗎？</h2>
+      <p>這會清除裝置上的計數紀錄，且無法復原。</p>
+      <div class="actions">
+        <button class="btn ghost" data-cancel>取消</button>
+        <button class="btn danger" data-ok>確定歸零</button>
+      </div>
+    </div>
+  </div>
 
   <script>
+    /* ======================
+       emoji 拋物線動畫（原樣保留）
+       ====================== */
     const EMOJIS = ["👍","❤️","😂","😮","😢","😡","🤗","☠️"];
-
     const btn = document.getElementById('btn');
     let lastDir = 1;
 
@@ -127,14 +213,101 @@
       return {x: r.left + r.width/2, y: r.top + r.height/2};
     }
 
+    /* ======================
+       點擊計數器邏輯
+       ====================== */
+    const counterEl = document.getElementById('counter');
+    const resetBtn  = document.getElementById('resetBtn');
+    const modal     = document.getElementById('confirm');
+    const okBtn     = modal.querySelector('[data-ok]');
+    const cancelBtn = modal.querySelector('[data-cancel]');
+
+    const STORAGE_KEY = 'clickCountV1';
+    const MAX = 9999999999; // 十個 9
+    let count = Number.parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    if(!Number.isFinite(count) || count < 0) count = 0;
+
+    let locked = count >= MAX;
+    let colorTimer = null; // 達 MAX 後每秒變色的計時器
+    let currentColor = '#000';
+
+    function save(){ localStorage.setItem(STORAGE_KEY, String(count)); }
+    function updateDisplay(){
+      counterEl.textContent = String(count);
+      counterEl.style.color = currentColor;
+      counterEl.classList.remove('bump');
+      requestAnimationFrame(()=>{ counterEl.classList.add('bump'); });
+    }
+    function clampToMax(){ if(count > MAX) count = MAX; }
+    function randomColor(){
+      const h = (Math.random() * 360) | 0;
+      const s = 70, l = 45;
+      return `hsl(${h} ${s}% ${l}%)`;
+    }
+    function onDigitGrew(){ // 位數增加才呼叫
+      currentColor = randomColor();
+      updateDisplay();
+    }
+    function startBlinkAtMax(){
+      stopBlink();
+      colorTimer = setInterval(()=>{
+        currentColor = randomColor();
+        updateDisplay();
+      }, 1000);
+    }
+    function stopBlink(){ if(colorTimer){ clearInterval(colorTimer); colorTimer = null; } }
+
+    // 初始化畫面
+    clampToMax();
+    updateDisplay();
+    if(locked){ startBlinkAtMax(); }
+
+    // 主按鈕：生成 emoji + 計數
     btn.addEventListener('pointerdown', (e)=>{
       if(!e.isPrimary) return;
       const {x,y} = clickPosWithinViewport(e);
       spawnEmoji(x, y);
+
+      if(locked) return; // 已達 10 個 9，停止計數
+      const before = String(count).length;
+      count = Math.min(MAX, count + 1);
+      save();
+      const after = String(count).length;
+      if(after > before){ onDigitGrew(); } else { updateDisplay(); }
+      if(count === MAX){
+        locked = true;
+        startBlinkAtMax();
+      }
     });
 
+    // 右鍵不觸發選單
     btn.addEventListener('contextmenu', (e)=> e.preventDefault());
+
+    // ====== 歸零確認卡片 ======
+    function openModal(){
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      okBtn.focus();
+    }
+    function closeModal(){
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    resetBtn.addEventListener('click', openModal);
+    cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e)=>{ if(e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
+
+    okBtn.addEventListener('click', ()=>{
+      count = 0;
+      locked = false;
+      stopBlink();
+      currentColor = '#000'; // 起始黑色
+      save();
+      updateDisplay();
+      closeModal();
+    });
   </script>
 </body>
-
 </html>
