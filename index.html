@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>圓形表情噴發按鈕</title>
+  <style>
+    :root{
+      --yellow-1:#fff7c2; /* 淡黃色 */
+      --yellow-2:#ffe98a; /* 漸層 */
+      --ring:#ffe066;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      display:flex;align-items:center;justify-content:center;
+      background:#fff;overflow:hidden;
+      font-family: ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Heiti TC",Arial,sans-serif;
+      touch-action:manipulation;
+    }
+
+    .round-btn{
+      width:140px;height:140px;border-radius:50%;
+      border:none;outline:none;cursor:pointer;user-select:none;
+      background:radial-gradient(circle at 30% 30%, var(--yellow-1), var(--yellow-2));
+      box-shadow: 0 12px 28px rgba(0,0,0,.12), inset 0 2px 8px rgba(255,255,255,.6);
+      transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+      position:relative;
+    }
+    .round-btn:hover{ transform: translateY(-2px); filter:brightness(1.02)}
+    .round-btn:active{ transform: translateY(0); box-shadow:0 10px 20px rgba(0,0,0,.1), inset 0 2px 6px rgba(0,0,0,.06)}
+    .round-btn:focus-visible{ outline:4px solid var(--ring); outline-offset:4px}
+
+    .round-btn::after{
+      content:""; position:absolute; inset:0; border-radius:50%;
+      background: radial-gradient( circle at 35% 35%, rgba(255,255,255,.7), transparent 40% );
+      pointer-events:none;
+    }
+
+    .emoji{
+      position: fixed; left:0; top:0; will-change: transform, opacity; pointer-events:none;
+      filter: drop-shadow(0 3px 10px rgba(0,0,0,.15));
+      transform: translate(-9999px, -9999px);
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .round-btn{ transition: none }
+    }
+  </style>
+</head>
+<body>
+  <button id="btn" class="round-btn" aria-label="點擊會噴出表情符號"></button>
+
+  <script>
+    const EMOJIS = ["👍","❤️","😂","😮","😢","😡","🤗","☠️"];
+
+    const btn = document.getElementById('btn');
+    let lastDir = 1;
+
+    function spawnEmoji(x, y){
+      const el = document.createElement('span');
+      el.className = 'emoji';
+      el.textContent = EMOJIS[(Math.random()*EMOJIS.length)|0];
+      el.style.fontSize = (32 + Math.random()*12) + 'px'; // 字體稍微大一點
+      document.body.appendChild(el);
+
+      const dir = lastDir *= -1;
+      const vx0 = dir * (120 + Math.random()*80);
+      const vy0 = -(320 + Math.random()*140); // 初速再向上多一點
+      const g   = 900;
+      const drag = 0.0008;
+      const spin = (Math.random()*360 - 180);
+
+      let px = x + (Math.random()*4 - 2);
+      let py = y + (Math.random()*4 - 2);
+
+      let vx = vx0;
+      let vy = vy0;
+
+      let angle = 0;
+      let opacity = 1;
+      const life = 1800;
+
+      let start;
+
+      function frame(ts){
+        if(start === undefined) start = ts;
+        const t = ts - start;
+        const dt = Math.min(32, t - (frame.prev||t)) / 1000;
+        frame.prev = t;
+
+        const damp = Math.max(0, 1 - drag * 1000 * dt);
+        vx *= damp;
+        vy = vy + g*dt;
+        vy *= damp;
+
+        px += vx * dt;
+        py += vy * dt;
+        angle += spin * dt;
+
+        if(t > 400){
+          opacity = Math.max(0, 1 - (t - 400) / (life - 400));
+        }
+
+        el.style.transform = `translate(${px}px, ${py}px) rotate(${angle}deg)`;
+        el.style.opacity = opacity;
+
+        const outOfView = (py > innerHeight + 60) || (px < -60) || (px > innerWidth + 60) || opacity <= 0;
+        const expired = t >= life;
+        if(outOfView || expired){
+          el.remove();
+        } else {
+          requestAnimationFrame(frame);
+        }
+      }
+
+      el.style.transform = `translate(${px}px, ${py}px)`;
+      el.style.opacity = '1';
+      requestAnimationFrame(frame);
+    }
+
+    function clickPosWithinViewport(e){
+      if(e.clientX != null && e.clientY != null){
+        return {x: e.clientX, y: e.clientY};
+      }
+      const r = btn.getBoundingClientRect();
+      return {x: r.left + r.width/2, y: r.top + r.height/2};
+    }
+
+    btn.addEventListener('pointerdown', (e)=>{
+      if(!e.isPrimary) return;
+      const {x,y} = clickPosWithinViewport(e);
+      spawnEmoji(x, y);
+    });
+
+    btn.addEventListener('contextmenu', (e)=> e.preventDefault());
+  </script>
+</body>
+</html>
