@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>圓形表情噴發按鈕</title>
+  <title>emoji</title>
   <style>
     :root{
-      --yellow-1:#fff7c2; /* 淡黃色 */
-      --yellow-2:#ffe98a; /* 漸層 */
+      --yellow-1:#fff7c2; 
+      --yellow-2:#ffe98a; 
       --ring:#ffe066;
     }
     *{box-sizing:border-box}
@@ -49,7 +49,7 @@
   </style>
 </head>
 <body>
-  <button id="btn" class="round-btn" aria-label="點擊會噴出表情符號"></button>
+  <button id="btn" class="round-btn" aria-label="button"></button>
 
   <script>
     const EMOJIS = ["👍","❤️","😂","😮","😢","😡","🤗","☠️"];
@@ -61,12 +61,12 @@
       const el = document.createElement('span');
       el.className = 'emoji';
       el.textContent = EMOJIS[(Math.random()*EMOJIS.length)|0];
-      el.style.fontSize = (32 + Math.random()*12) + 'px'; // 字體稍微大一點
+      el.style.fontSize = (32 + Math.random()*12) + 'px'; 
       document.body.appendChild(el);
 
       const dir = lastDir *= -1;
       const vx0 = dir * (120 + Math.random()*80);
-      const vy0 = -(320 + Math.random()*140); // 初速再向上多一點
+      const vy0 = -(320 + Math.random()*140); 
       const g   = 900;
       const drag = 0.0008;
       const spin = (Math.random()*360 - 180);
@@ -136,4 +136,5 @@
     btn.addEventListener('contextmenu', (e)=> e.preventDefault());
   </script>
 </body>
+
 </html>
