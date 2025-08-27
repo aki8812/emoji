@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
   <title>emoji</title>
   <style>
     :root{
@@ -40,7 +41,7 @@
       filter: drop-shadow(0 3px 10px rgba(0,0,0,.10));
       transition: color .35s ease, transform .2s ease;
 
-      position: fixed; /* 關鍵：不佔空間，避免影響按鈕置中 */
+      position: fixed; /* 不佔空間，避免影響按鈕置中 */
       top: var(--counter-top);
       left: 50%;
       transform: translateX(-50%);
@@ -117,7 +118,7 @@
   <!-- 右上角「歸零」 -->
   <button id="resetBtn" class="reset-btn" aria-label="歸零">歸零</button>
 
-  <!-- 中央堆疊容器：上方數字（fixed，不佔空間） + 正中央按鈕 -->
+  <!-- 中央堆疊：上方數字（fixed，不佔空間） + 正中央按鈕 -->
   <div class="stack">
     <div id="counter" class="counter" aria-live="polite">0</div>
     <button id="btn" class="round-btn" aria-label="button"></button>
@@ -214,7 +215,7 @@
     }
 
     /* ======================
-       點擊計數器邏輯
+       點擊計數器 + 顏色持久化
        ====================== */
     const counterEl = document.getElementById('counter');
     const resetBtn  = document.getElementById('resetBtn');
@@ -222,16 +223,23 @@
     const okBtn     = modal.querySelector('[data-ok]');
     const cancelBtn = modal.querySelector('[data-cancel]');
 
-    const STORAGE_KEY = 'clickCountV1';
+    const COUNT_KEY = 'clickCountV1';
+    const COLOR_KEY = 'clickColorV1';
     const MAX = 9999999999; // 十個 9
-    let count = Number.parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+
+    // 讀取本地紀錄
+    let count = Number.parseInt(localStorage.getItem(COUNT_KEY) || '0', 10);
     if(!Number.isFinite(count) || count < 0) count = 0;
+
+    // 顏色初始值：讀取 localStorage，找不到則黑色
+    let currentColor = localStorage.getItem(COLOR_KEY) || '#000';
 
     let locked = count >= MAX;
     let colorTimer = null; // 達 MAX 後每秒變色的計時器
-    let currentColor = '#000';
 
-    function save(){ localStorage.setItem(STORAGE_KEY, String(count)); }
+    function saveCount(){ localStorage.setItem(COUNT_KEY, String(count)); }
+    function saveColor(){ localStorage.setItem(COLOR_KEY, String(currentColor)); }
+
     function updateDisplay(){
       counterEl.textContent = String(count);
       counterEl.style.color = currentColor;
@@ -244,18 +252,22 @@
       const s = 70, l = 45;
       return `hsl(${h} ${s}% ${l}%)`;
     }
-    function onDigitGrew(){ // 位數增加才呼叫
+    function onDigitGrew(){ // 位數增加才換色
       currentColor = randomColor();
+      saveColor();
       updateDisplay();
     }
     function startBlinkAtMax(){
       stopBlink();
       colorTimer = setInterval(()=>{
         currentColor = randomColor();
+        saveColor();         // 每秒變色也存起來
         updateDisplay();
       }, 1000);
     }
-    function stopBlink(){ if(colorTimer){ clearInterval(colorTimer); colorTimer = null; } }
+    function stopBlink(){
+      if(colorTimer){ clearInterval(colorTimer); colorTimer = null; }
+    }
 
     // 初始化畫面
     clampToMax();
@@ -271,7 +283,7 @@
       if(locked) return; // 已達 10 個 9，停止計數
       const before = String(count).length;
       count = Math.min(MAX, count + 1);
-      save();
+      saveCount();
       const after = String(count).length;
       if(after > before){ onDigitGrew(); } else { updateDisplay(); }
       if(count === MAX){
@@ -304,7 +316,8 @@
       locked = false;
       stopBlink();
       currentColor = '#000'; // 起始黑色
-      save();
+      saveCount();
+      saveColor();           // 同步把顏色也存起來
       updateDisplay();
       closeModal();
     });
