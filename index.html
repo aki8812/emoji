@@ -248,9 +248,10 @@
     }
     function clampToMax(){ if(count > MAX) count = MAX; }
     function randomColor(){
-      const h = (Math.random() * 360) | 0;
-      const s = 70, l = 45;
-      return `hsl(${h} ${s}% ${l}%)`;
+      const h = (Math.random() * 360) | 0;         
+      const s = 20 + Math.random() * 80;           
+      const l = 20 + Math.random() * 60;           
+  return `hsl(${h} ${s.toFixed(0)}% ${l.toFixed(0)}%)`;
     }
     function onDigitGrew(){ // 位數增加才換色
       currentColor = randomColor();
